@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ksatria Gurun: Misi Dhomir</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cinzel, Plus Jakarta Sans & Scheherazade New / Amiri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Scheherazade+New:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #080b14;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f1f5f9;
+        }
+
+        .font-rpg {
+            font-family: 'Cinzel', serif;
+        }
+
+        .arabic-text {
+            font-family: 'Scheherazade New', 'Amiri', serif;
+            direction: rtl;
+            line-height: 1.9;
+        }
+
+        /* Kartu Jurus Serangan */
+        .skill-card {
+            background: linear-gradient(180deg, rgba(24, 33, 52, 0.96) 0%, rgba(12, 18, 30, 0.98) 100%);
+            border: 1.5px solid rgba(217, 119, 6, 0.45);
+            box-shadow: 0 4px 0 #090d16, 0 10px 20px rgba(0, 0, 0, 0.55);
+            transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.14s ease, box-shadow 0.14s ease;
+        }
+
+        .skill-card:hover:not(:disabled) {
+            transform: translateY(-4px);
+            border-color: #f59e0b;
+            background: linear-gradient(180deg, rgba(35, 48, 74, 0.98) 0%, rgba(18, 26, 43, 0.98) 100%);
+            box-shadow: 0 8px 0 #78350f, 0 14px 24px rgba(245, 158, 11, 0.2);
+        }
+
+        .skill-card:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #090d16;
+        }
+
+        .skill-card:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Gulungan Naskah Kuno (Parchment) */
+        .scroll-parchment {
+            background: radial-gradient(circle at center, #fdf6e3 0%, #f5e6c4 75%, #e6ce9a 100%);
+            border: 2px solid #b45309;
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.7), inset 0 0 24px rgba(146, 64, 14, 0.2);
+            color: #291506;
+        }
+
+        /* Tombol Emas Klasik */
+        .btn-gold {
+            background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+            border: 1.5px solid #fde68a;
+            box-shadow: 0 4px 0 #78350f, 0 10px 20px rgba(180, 83, 9, 0.35);
+            color: #1c0d02;
+            transition: all 0.15s ease;
+        }
+        .btn-gold:hover {
+            filter: brightness(1.07);
+            transform: translateY(-2px);
+        }
+        .btn-gold:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #78350f;
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-popup {
+            animation: slideUpFade 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Scrollbar Halus */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b45309;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body class="relative w-full h-full">
+
+    <!-- ==================== CANVAS DUNIA RPG (FULLSCREEN) ==================== -->
+    <canvas id="gameCanvas" class="block w-full h-full"></canvas>
+
+    <!-- Efek Kilatan Merah Saat Terkena Serangan -->
+    <div id="damage-flash" class="pointer-events-none fixed inset-0 bg-red-600/0 transition-colors duration-200 z-10"></div>
+
+    <!-- ==================== HUD / UI OVERLAY SAAT BERMAIN ==================== -->
+    <div id="game-hud" class="hidden fixed inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20">
+        
+        <!-- TOP BAR: Status Ksatria, Tahap Gerbang, Koin & Musuh -->
+        <div class="w-full max-w-6xl mx-auto flex flex-col gap-2.5 pointer-events-auto">
+            <div class="flex items-center justify-between gap-2 bg-slate-950/85 backdrop-blur-md border border-amber-500/35 rounded-2xl px-3.5 py-2.5 shadow-2xl">
+                
+                <!-- Kiri: Status Pemain (Ksatria) -->
+                <div class="flex items-center gap-3 min-w-[135px] sm:min-w-[210px]">
+                    <!-- Emblem Perisai & Bulan Sabit SVG -->
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-emerald-900 to-slate-900 border border-amber-400/70 flex items-center justify-center shadow-inner shrink-0">
+                        <svg class="w-6 h-6 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                            <path d="M12 2L4 5.5V11.5C4 16.8 7.4 21.6 12 23C16.6 21.6 20 16.8 20 11.5V5.5L12 2Z" stroke-linejoin="round"/>
+                            <path d="M13.5 8.5A4 4 0 1 0 13.5 15.5A3.2 3.2 0 1 1 13.5 8.5Z" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between text-xs font-bold">
+                            <span class="text-emerald-300 tracking-wide">Al-Faris</span>
+                            <span id="player-hp-text" class="text-slate-200 font-mono">100/100</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/80 mt-1.5">
+                            <div id="player-hp-bar" class="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-300" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tengah: Gerbang & Koin -->
+                <div class="flex flex-col items-center">
+                    <div class="flex items-center gap-2 px-3.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/40">
+                        <span class="w-1.5 h-1.5 rotate-45 bg-amber-400"></span>
+                        <span class="text-amber-300 text-xs sm:text-sm font-bold tracking-widest uppercase">
+                            Gerbang <span id="stage-num">1</span>/10
+                        </span>
+                        <span class="w-1.5 h-1.5 rotate-45 bg-amber-400"></span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-1 text-xs font-bold">
+                        <span class="text-amber-300 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9 12 2"/>
+                            </svg>
+                            <span id="gold-score">0</span> Dinar
+                        </span>
+                        <span id="combo-badge" class="hidden text-amber-200 bg-amber-600/30 border border-amber-400/50 px-2 py-0.2 rounded text-[11px] tracking-wider">
+                            <span id="combo-count">2</span>X RANTAI
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Kanan: Status Musuh & Tombol Audio -->
+                <div class="flex items-center gap-2">
+                    <div id="enemy-hud-box" class="flex items-center gap-2.5 min-w-[115px] sm:min-w-[190px] transition-opacity duration-300">
+                        <div class="flex-1 text-right">
+                            <div class="flex items-center justify-between text-xs font-bold">
+                                <span id="enemy-hp-text" class="text-rose-200 font-mono">100/100</span>
+                                <span id="enemy-name" class="text-rose-400 truncate max-w-[85px] sm:max-w-[130px]">Penjaga Pasir</span>
+                            </div>
+                            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/80 mt-1.5">
+                                <div id="enemy-hp-bar" class="h-full bg-gradient-to-l from-rose-600 to-amber-500 transition-all duration-300 ml-auto" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                        <!-- Emblem Rub el Hizb Musuh SVG -->
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-rose-950 to-slate-900 border border-rose-500/60 flex items-center justify-center shadow-inner shrink-0">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <rect x="5" y="5" width="14" height="14" />
+                                <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
+                                <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Kontrol Terpisah: Musik Latar (BGM) & Efek Suara (SFX) -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="toggleBGM()" id="btn-bgm" title="Musik Latar" class="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/35 text-amber-300 transition active:scale-95 cursor-pointer" aria-label="Pengaturan Musik Latar">
+                            <!-- Ikon Musik Aktif SVG -->
+                            <svg id="icon-bgm-on" class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 18V5l12-2v13"></path>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <circle cx="18" cy="16" r="3"></circle>
+                            </svg>
+                            <!-- Ikon Musik Senyap SVG -->
+                            <svg id="icon-bgm-off" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 18V5l12-2v13"></path>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <circle cx="18" cy="16" r="3"></circle>
+                                <line x1="2" y1="2" x2="22" y2="22" class="text-rose-400"></line>
+                            </svg>
+                        </button>
+
+                        <button onclick="toggleSFX()" id="btn-sfx" title="Efek Suara" class="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/35 text-amber-300 transition active:scale-95 cursor-pointer" aria-label="Pengaturan Efek Suara">
+                            <!-- Ikon Speaker Aktif SVG -->
+                            <svg id="icon-sfx-on" class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                            </svg>
+                            <!-- Ikon Speaker Senyap SVG -->
+                            <svg id="icon-sfx-off" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <line x1="23" y1="9" x2="17" y2="15"></line>
+                                <line x1="17" y1="9" x2="23" y2="15"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Penanda Perjalanan -->
+            <div id="travel-banner" class="mx-auto px-5 py-1.5 rounded-full bg-slate-950/80 border border-amber-500/30 text-amber-200/90 text-xs sm:text-sm font-medium tracking-wide backdrop-blur-sm">
+                Menyusuri gurun menuju gerbang berikutnya...
+            </div>
+        </div>
+
+        <!-- CENTER: GULUNGAN SOAL DHOMIR (Muncul saat Battle) -->
+        <div id="battle-scroll-container" class="hidden w-full max-w-2xl mx-auto my-auto pointer-events-auto animate-popup px-1">
+            <div class="scroll-parchment rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative">
+                <!-- Ornamen Sudut Geometris Halus -->
+                <div class="flex items-center justify-between border-b border-amber-800/20 pb-2 mb-3">
+                    <span id="scroll-category" class="px-2.5 py-0.5 rounded bg-amber-900/10 text-amber-950 font-bold text-[11px] sm:text-xs uppercase tracking-wider">
+                        Dhomir Munfashil
+                    </span>
+                    <span class="text-xs font-semibold text-amber-900/80">Lengkapi kalimat berikut</span>
+                </div>
+
+                <!-- Teks Soal Bahasa Arab Berharakat Lengkap -->
+                <div class="bg-amber-50/90 border border-amber-700/30 rounded-xl px-4 py-3.5 sm:py-5 text-center shadow-inner">
+                    <p id="scroll-arabic" class="arabic-text text-2xl sm:text-4xl font-bold text-slate-900">
+                        ....... طَالِبٌ مُجْتَهِدٌ فِي الْمَدْرَسَةِ
+                    </p>
+                </div>
+
+                <!-- Petunjuk Terjemahan Konteks -->
+                <p id="scroll-context" class="text-center text-xs sm:text-sm font-semibold text-amber-950/90 mt-3">
+                    Makna: "(Dia laki-laki) adalah seorang siswa yang rajin di sekolah."
+                </p>
+            </div>
+        </div>
+
+        <!-- BOTTOM DECK: 4 KARTU JURUS SERANGAN (A, B, C, D) -->
+        <div id="battle-cards-container" class="hidden w-full max-w-4xl mx-auto pointer-events-auto animate-popup">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5" id="skill-cards-grid">
+                <!-- Kartu Jurus di-render lewat JS -->
+            </div>
+            <p class="hidden sm:block text-center text-[11px] text-slate-400 mt-2.5 tracking-wide">
+                Pilih kartu atau gunakan tombol papan ketik <kbd class="px-1.5 py-0.5 bg-slate-900 rounded border border-slate-700 text-amber-300">1</kbd> <kbd class="px-1.5 py-0.5 bg-slate-900 rounded border border-slate-700 text-amber-300">2</kbd> <kbd class="px-1.5 py-0.5 bg-slate-900 rounded border border-slate-700 text-amber-300">3</kbd> <kbd class="px-1.5 py-0.5 bg-slate-900 rounded border border-slate-700 text-amber-300">4</kbd>
+            </p>
+        </div>
+
+    </div>
+
+    <!-- ==================== MODAL HASIL SERANGAN (FEEDBACK BATTLE) ==================== -->
+    <div id="battle-feedback-modal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-30 flex items-center justify-center p-4">
+        <div id="feedback-card-box" class="w-full max-w-md bg-slate-950 border border-amber-500/60 rounded-3xl p-5 sm:p-6 shadow-2xl text-center animate-popup">
+            
+            <!-- Ornamen Rub el Hizb Status -->
+            <div id="fb-ornament" class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-slate-900 border border-amber-400/50 flex items-center justify-center">
+                <svg class="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="5" y="5" width="14" height="14" />
+                    <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
+                </svg>
+            </div>
+
+            <h3 id="fb-title" class="text-xl sm:text-2xl font-extrabold text-amber-300">Serangan Tepat</h3>
+            <p id="fb-subtitle" class="text-xs font-bold uppercase tracking-wider text-emerald-400 mt-1 mb-4">
+                Penjaga gerbang berhasil dikalahkan
+            </p>
+            
+            <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 text-left text-xs sm:text-sm text-slate-300 leading-relaxed mb-5">
+                <span class="font-bold text-amber-300 uppercase tracking-wider text-[11px] block mb-1.5">Kaidah Dhomir</span>
+                <p id="fb-explanation">Penjelasan kaidah dhomir.</p>
+            </div>
+
+            <button id="fb-next-btn" onclick="continueAdventure()" onmouseenter="playSFX('hover')" class="btn-gold w-full py-3 rounded-xl font-extrabold text-sm sm:text-base tracking-wide cursor-pointer">
+                Lanjutkan Perjalanan
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== LAYAR AWAL (TITLE SCREEN) ==================== -->
+    <div id="start-overlay" class="fixed inset-0 bg-slate-950/65 backdrop-blur-[2px] z-40 flex items-center justify-center p-4">
+        <div class="w-full max-w-xl bg-slate-950/92 border border-amber-500/45 rounded-3xl p-6 sm:p-9 text-center shadow-2xl animate-popup relative overflow-hidden">
+            
+            <!-- Ornamen Geometris Rub el Hizb Atas -->
+            <div class="w-14 h-14 mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-14 h-14 text-amber-400" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="10" y="10" width="28" height="28" />
+                    <rect x="10" y="10" width="28" height="28" transform="rotate(45 24 24)" />
+                    <circle cx="24" cy="24" r="5" />
+                </svg>
+            </div>
+
+            <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-400/35 text-amber-300 text-[11px] font-bold uppercase tracking-widest mb-3">
+                <span>Petualangan Bahasa Arab</span>
+            </div>
+
+            <h1 class="font-rpg text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-amber-400 to-amber-600 tracking-wide mb-1.5">
+                KSATRIA GURUN
+            </h1>
+            <h2 class="text-base sm:text-lg font-bold text-emerald-400 mb-4 tracking-wide">
+                Misi Sepuluh Gerbang <span class="arabic-text text-2xl mr-1">الضَّمَائِر</span>
+            </h2>
+
+            <!-- Garis Pemisah Kaligrafis -->
+            <div class="flex items-center justify-center gap-3 mb-5 opacity-70">
+                <span class="h-[1px] w-16 bg-gradient-to-r from-transparent to-amber-400"></span>
+                <span class="w-2 h-2 rotate-45 border border-amber-400"></span>
+                <span class="h-[1px] w-16 bg-gradient-to-l from-transparent to-amber-400"></span>
+            </div>
+
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-md mx-auto mb-7">
+                Bimbing langkah ksatria melintasi sepuluh gerbang gurun kuno. Tundukkan setiap penjaga gerbang dengan memilih kata ganti bahasa Arab (<strong class="text-amber-300">Dhomir</strong>) yang sesuai dengan kaidah.
+            </p>
+
+            <!-- Ringkasan Tahapan -->
+            <div class="grid grid-cols-3 gap-2.5 mb-7 text-center">
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl">
+                    <div class="text-xs font-extrabold text-amber-300 uppercase tracking-wider">10 Gerbang</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Penjaga & Raja Akhir</div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl">
+                    <div class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">Tata Bahasa</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Munfashil & Muttashil</div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl">
+                    <div class="text-xs font-extrabold text-amber-200 uppercase tracking-wider">Poin Dinar</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Bonus Serangan Rantai</div>
+                </div>
+            </div>
+
+            <button onclick="startAdventure()" onmouseenter="playSFX('hover')" class="btn-gold w-full sm:w-auto px-12 py-3.5 rounded-2xl font-extrabold text-sm sm:text-base tracking-wider uppercase cursor-pointer inline-flex items-center justify-center gap-2.5 mx-auto">
+                <span>Mulai Perjalanan</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== LAYAR AKHIR (VICTORY / GAME OVER) ==================== -->
+    <div id="gameover-overlay" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-40 flex items-center justify-center p-4">
+        <div class="w-full max-w-xl bg-slate-950 border border-amber-500/50 rounded-3xl p-6 sm:p-8 text-center shadow-2xl animate-popup max-h-[92vh] flex flex-col">
+            
+            <!-- Ornamen Mahkota Geometris SVG -->
+            <div class="w-12 h-12 mx-auto mb-2 flex items-center justify-center text-amber-400">
+                <svg class="w-11 h-11" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M6 26L4 12L12 18L18 8L24 18L32 12L30 26H6Z" stroke-linejoin="round"/>
+                    <line x1="6" y1="30" x2="30" y2="30" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <h2 id="end-title" class="font-rpg text-2xl sm:text-3xl font-black text-amber-400 tracking-wide mb-1">
+                MISI TUNTAS
+            </h2>
+            <p id="end-subtitle" class="text-slate-300 text-xs sm:text-sm mb-5">
+                Seluruh penjaga gerbang telah berhasil ditaklukkan.
+            </p>
+
+            <!-- Statistik Pertempuran -->
+            <div class="grid grid-cols-4 gap-2 mb-5">
+                <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
+                    <div class="text-[11px] text-slate-400 uppercase tracking-wider">Gelar</div>
+                    <div id="end-rank" class="text-xl sm:text-2xl font-black text-amber-400 mt-0.5">S</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
+                    <div class="text-[11px] text-slate-400 uppercase tracking-wider">Dinar</div>
+                    <div id="end-gold" class="text-lg sm:text-xl font-extrabold text-amber-200 mt-1">0</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
+                    <div class="text-[11px] text-slate-400 uppercase tracking-wider">Tepat</div>
+                    <div id="end-stages" class="text-lg sm:text-xl font-extrabold text-emerald-400 mt-1">10/10</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
+                    <div class="text-[11px] text-slate-400 uppercase tracking-wider">Rantai</div>
+                    <div id="end-combo" class="text-lg sm:text-xl font-extrabold text-amber-300 mt-1">0x</div>
+                </div>
+            </div>
+
+            <!-- Catatan Pertempuran -->
+            <div class="text-left flex-1 overflow-hidden flex flex-col mb-5">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-300/90 mb-2">
+                    Catatan Gerbang & Kunci Jawaban
+                </h4>
+                <div id="battle-log-list" class="overflow-y-auto space-y-2 pr-1 flex-1 max-h-48">
+                    <!-- Diisi lewat JS -->
+                </div>
+            </div>
+
+            <button onclick="startAdventure()" onmouseenter="playSFX('hover')" class="btn-gold w-full py-3.5 rounded-2xl font-extrabold text-sm sm:text-base tracking-wider uppercase cursor-pointer">
+                Ulangi Perjalanan
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== SCRIPT ENGINE GAME & 10 SOAL DHOMIR ==================== -->
+    <script>
+        // ==================== 1. DATA 10 SOAL DHOMIR BERHARAKET LENGKAP ====================
+        const stagesData = [
+            {
+                enemyName: "Penjaga Gerbang I",
+                enemyType: "minion",
+                category: "Dhomir Munfashil (Kata Ganti Terpisah)",
+                arabic: "....... طَالِبٌ مُجْتَهِدٌ فِي الْمَدْرَسَةِ",
+                context: "Makna: '(Dia laki-laki) adalah seorang siswa yang rajin di sekolah.'",
+                options: ["هُوَ", "هِيَ", "أَنْتَ", "أَنَا"],
+                correctIndex: 0,
+                explanation: "Kata 'طَالِبٌ' (talibun) adalah mudzakkar mufrad (laki-laki tunggal), sehingga dhomir munfashil yang tepat adalah هُوَ (huwa)."
+            },
+            {
+                enemyName: "Penjaga Gerbang II",
+                enemyType: "minion",
+                category: "Dhomir Munfashil (Kata Ganti Terpisah)",
+                arabic: "....... طَبِيبَةٌ مَاهِرَةٌ فِي الْمُسْتَشْفَى",
+                context: "Makna: '(Dia perempuan) adalah seorang dokter wanita yang mahir di rumah sakit.'",
+                options: ["هُوَ", "هِيَ", "أَنْتِ", "نَحْنُ"],
+                correctIndex: 1,
+                explanation: "Kata 'طَبِيبَةٌ' (thobibah) adalah muannats mufrad (perempuan tunggal), sehingga dhomir munfashil yang tepat adalah هِيَ (hiya)."
+            },
+            {
+                enemyName: "Penjaga Gerbang III",
+                enemyType: "minion",
+                category: "Dhomir Munfashil (Kata Ganti Terpisah)",
+                arabic: "....... تِلْمِيذَةٌ نَشِيطَةٌ فِي الْفَصْلِ",
+                context: "Makna: '(Kamu perempuan) adalah seorang murid perempuan yang aktif di kelas.'",
+                options: ["أَنْتَ", "أَنْتِ", "أَنَا", "هِيَ"],
+                correctIndex: 1,
+                explanation: "Subjek yang diajak bicara adalah muannats mufrad (perempuan tunggal: 'تِلْمِيذَةٌ'), maka dhomir yang tepat adalah أَنْتِ (anti)."
+            },
+            {
+                enemyName: "Penjaga Gerbang IV",
+                enemyType: "minion",
+                category: "Dhomir Munfashil (Kata Ganti Terpisah)",
+                arabic: "....... مُسْلِمٌ مُؤْمِنٌ بِاللَّهِ",
+                context: "Makna: '(Saya) adalah seorang Muslim yang beriman kepada Allah.'",
+                options: ["نَحْنُ", "هُمْ", "أَنَا", "أَنْتَ"],
+                correctIndex: 2,
+                explanation: "Kata 'مُسْلِمٌ' tunggal untuk diri sendiri (mutakallim), sehingga dhomir munfashil yang tepat adalah أَنَا (ana)."
+            },
+            {
+                enemyName: "Penjaga Gerbang V",
+                enemyType: "minion",
+                category: "Dhomir Munfashil (Kata Ganti Terpisah)",
+                arabic: "....... مُهَنْدِسُونَ صَادِقُونَ",
+                context: "Makna: '(Mereka laki-laki) adalah para insinyur yang jujur.'",
+                options: ["هُنَّ", "هُمْ", "أَنْتُمْ", "نَحْنُ"],
+                correctIndex: 1,
+                explanation: "Kata 'مُهَنْدِسُونَ' adalah jamak mudzakkar salim (banyak laki-laki), maka dhomir munfashil yang tepat adalah هُمْ (hum)."
+            },
+            {
+                enemyName: "Penjaga Gerbang VI",
+                enemyType: "minion",
+                category: "Dhomir Muttashil Lil-Milkiyah (Kepemilikan)",
+                arabic: "هَذَا كِتَابُ ....... (لِي)",
+                context: "Makna: 'Ini adalah buku (milik saya).'",
+                options: ["كَ", "كِ", "ي", "هُ"],
+                correctIndex: 2,
+                explanation: "Kepemilikan untuk orang pertama tunggal (saya) dilekatkan dengan dhomir muttashil huruf ya' sukun (ي), menjadi كِتَابِي (kitabi)."
+            },
+            {
+                enemyName: "Penjaga Gerbang VII",
+                enemyType: "minion",
+                category: "Dhomir Muttashil Lil-Milkiyah (Kepemilikan)",
+                arabic: "أَيْنَ بَيْتُ ....... يَا أخِي؟ (لَكَ)",
+                context: "Makna: 'Di mana rumah (kamu laki-laki) wahai saudaraku?'",
+                options: ["كَ", "كِ", "هُ", "هُمْ"],
+                correctIndex: 0,
+                explanation: "Kepemilikan untuk lawan jenis mudzakkar mufrad (kamu laki-laki) menggunakan dhomir muttashil kaf berharakat fathah (كَ), menjadi بَيْتُكَ (baituka)."
+            },
+            {
+                enemyName: "Penjaga Gerbang VIII",
+                enemyType: "minion",
+                category: "Dhomir Muttashil Lil-Milkiyah (Kepemilikan)",
+                arabic: "تِلْكَ حَقِيبَةُ ....... (لَهَا)",
+                context: "Makna: 'Itu adalah tas (milik dia perempuan).'",
+                options: ["كَ", "هُ", "هَا", "هُمْ"],
+                correctIndex: 2,
+                explanation: "Kepemilikan untuk pihak ketiga muannats (dia perempuan) menggunakan dhomir muttashil ha' alif (هَا), menjadi حَقِيبَتُهَا (haqibatuhā)."
+            },
+            {
+                enemyName: "Penjaga Gerbang IX",
+                enemyType: "minion",
+                category: "Dhomir Muttashil Lil-Fi'il (Kata Kerja Madhi)",
+                arabic: "....... الدَّرْسَ فِي البَيْتِ (أَنَا ذَهَبْتُ / قَرَأْتُ)",
+                context: "Makna: '(Saya) telah membaca pelajaran di rumah.'",
+                options: ["قَرَأْتُ", "قَرَأْتَ", "قَرَأْتِ", "قَرَأْنَا"],
+                correctIndex: 0,
+                explanation: "Fi'il madhi untuk dhomir أَنَا (saya) mendapat tambahan ta' fail berharakat dhommah (ْتُ), yaitu قَرَأْتُ (qara'tu)."
+            },
+            {
+                enemyName: "Raja Dhomir Al-Akbar",
+                enemyType: "boss",
+                category: "Dhomir Muttashil Lil-Fi'il (Jamak / Kalian)",
+                arabic: "هَلْ ....... الْوَاجِبَ يَا أَوْلَادُ؟ (أَنْتُمْ كَتَبْتُمْ)",
+                context: "Makna: 'Apakah (kalian laki-laki) telah menulis PR wahai anak-anak?'",
+                options: ["كَتَبْتَ", "كَتَبْتُمْ", "كَتَبْنَ", "كَتَبَا"],
+                correctIndex: 1,
+                explanation: "Fi'il madhi untuk dhomir jamak mudzakkar مخاطَب أَنْتُمْ (kalian laki-laki) diakhiri dengan akhiran تُمْ (tum), sehingga menjadi كَتَبْتُمْ (katabtum)."
+            }
+        ];
+
+        // ==================== 2. SISTEM AUDIO WEB AUDIO API (BGM HIJAZ KAR & SFX) ====================
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let noiseBuffer = null;
+        let isBGMMuted = false;
+        let isSFXMuted = false;
+
+        // State Sequencer Musik Latar Timur Tengah (Tangga Nada Hijaz Kar: D, Eb, F#, G, A, Bb, C#, D)
+        const bgmState = {
+            isPlaying: false,
+            timerId: null,
+            step: 0,
+            masterGain: null
+        };
+
+        // Frekuensi nada Hijaz Kar dalam Hz (D3 - D5)
+        const HIJAZ = {
+            D2: 73.42, A2: 110.00,
+            D3: 146.83, Eb3: 155.56, Fs3: 185.00, G3: 196.00, A3: 220.00, Bb3: 233.08, Cs4: 277.18,
+            D4: 293.66, Eb4: 311.13, Fs4: 369.99, G4: 392.00, A4: 440.00, Bb4: 466.16, Cs5: 554.37, D5: 587.33
+        };
+
+        // Pola 16 ketukan melodi petikan Oud/Qanun (0 = jeda)
+        const melodyNormal = [
+            HIJAZ.D4, 0, HIJAZ.Fs4, HIJAZ.G4,
+            HIJAZ.A4, HIJAZ.Bb4, HIJAZ.A4, HIJAZ.G4,
+            HIJAZ.Fs4, 0, HIJAZ.Eb4, HIJAZ.Fs4,
+            HIJAZ.D4, 0, HIJAZ.A3, 0
+        ];
+
+        // Pola 16 ketukan melodi intens saat melawan Raja Dhomir (Tahap 10)
+        const melodyBoss = [
+            HIJAZ.D4, HIJAZ.A4, HIJAZ.Bb4, HIJAZ.Cs5,
+            HIJAZ.D5, HIJAZ.Cs5, HIJAZ.Bb4, HIJAZ.A4,
+            HIJAZ.G4, HIJAZ.Bb4, HIJAZ.A4, HIJAZ.Fs4,
+            HIJAZ.G4, HIJAZ.Eb4, HIJAZ.Fs4, HIJAZ.D4
+        ];
+
+        // Pola ritme Darbuka / Req 16 langkah: 'D' (Dum bass), 'T' (Tak rim), 'K' (Ka slap), '.' (jeda)
+        const darbukaPattern = [
+            'D', '.', 'T', 'K',
+            'D', '.', 'T', '.',
+            'D', 'K', 'T', 'K',
+            'D', '.', 'T', 'K'
+        ];
+
+        function ensureAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+                // Buat buffer noise putih 1.5 detik untuk pasir, angin, perkamen & perkusi darbuka
+                const sampleRate = audioCtx.sampleRate;
+                const length = Math.floor(sampleRate * 1.5);
+                noiseBuffer = audioCtx.createBuffer(1, length, sampleRate);
+                const data = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < length; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Sintesis petikan dawai Oud / Qanun (harmonik hangat + filter resonansi)
+        function playOudNote(freq, time, duration, volume = 0.085) {
+            if (!audioCtx || isBGMMuted || !bgmState.masterGain) return;
+
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            osc1.type = 'triangle';
+            osc2.type = 'sawtooth';
+            osc1.frequency.setValueAtTime(freq, time);
+            osc2.frequency.setValueAtTime(freq * 1.002, time); // Sedikit detune untuk karakter dawai ganda Oud
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(freq * 4.5, time);
+            filter.frequency.exponentialRampToValueAtTime(freq * 1.3, time + duration);
+            filter.Q.value = 3.2;
+
+            gain.gain.setValueAtTime(0.001, time);
+            gain.gain.linearRampToValueAtTime(volume, time + 0.014);
+            gain.gain.exponentialRampToValueAtTime(0.0008, time + duration);
+
+            const subGain2 = audioCtx.createGain();
+            subGain2.gain.value = 0.32;
+
+            osc1.connect(filter);
+            osc2.connect(subGain2);
+            subGain2.connect(filter);
+            filter.connect(gain);
+            gain.connect(bgmState.masterGain);
+
+            osc1.start(time);
+            osc2.start(time);
+            osc1.stop(time + duration + 0.03);
+            osc2.stop(time + duration + 0.03);
+        }
+
+        // Sintesis Bassline Drone Rendah
+        function playDroneBass(freq, time, duration, volume = 0.07) {
+            if (!audioCtx || isBGMMuted || !bgmState.masterGain) return;
+
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+
+            filter.type = 'lowpass';
+            filter.frequency.value = 240;
+
+            gain.gain.setValueAtTime(0.001, time);
+            gain.gain.linearRampToValueAtTime(volume, time + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(bgmState.masterGain);
+
+            osc.start(time);
+            osc.stop(time + duration + 0.05);
+        }
+
+        // Sintesis Perkusi Darbuka (Dum & Tak)
+        function playDarbukaHit(hitType, time, volume = 0.09) {
+            if (!audioCtx || isBGMMuted || !bgmState.masterGain) return;
+
+            if (hitType === 'D') {
+                // Dum: Bass membran rendah dengan pitch drop
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(145, time);
+                osc.frequency.exponentialRampToValueAtTime(54, time + 0.16);
+
+                gain.gain.setValueAtTime(volume * 1.25, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
+
+                osc.connect(gain);
+                gain.connect(bgmState.masterGain);
+                osc.start(time);
+                osc.stop(time + 0.24);
+            } else if (hitType === 'T' || hitType === 'K') {
+                // Tak / Ka: Tamparan tepi perkusi dengan bandpass noise
+                if (!noiseBuffer) return;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = noiseBuffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = hitType === 'T' ? 1950 : 2800;
+                filter.Q.value = 2.8;
+
+                const gain = audioCtx.createGain();
+                const dur = hitType === 'T' ? 0.09 : 0.055;
+                const vol = hitType === 'T' ? volume * 0.75 : volume * 0.45;
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(bgmState.masterGain);
+                noise.start(time);
+                noise.stop(time + dur + 0.02);
+            }
+        }
+
+        function startBGM() {
+            ensureAudio();
+            if (bgmState.isPlaying) return;
+
+            bgmState.masterGain = audioCtx.createGain();
+            bgmState.masterGain.gain.value = isBGMMuted ? 0 : 0.85;
+            bgmState.masterGain.connect(audioCtx.destination);
+
+            bgmState.isPlaying = true;
+            bgmState.step = 0;
+
+            function scheduleNextStep() {
+                if (!bgmState.isPlaying) return;
+
+                const isBossBattle = game.stageIndex === 9 && (game.mode === 'ENCOUNTER' || game.mode === 'ANIMATING');
+                // Tempo lebih cepat dan dramatis saat melawan Raja Dhomir
+                const stepMs = isBossBattle ? 175 : (game.mode === 'WALKING' ? 235 : 220);
+                const now = audioCtx.currentTime + 0.01;
+                const idx = bgmState.step % 16;
+
+                // 1. Melodi Oud / Qanun
+                const activeMelody = isBossBattle ? melodyBoss : melodyNormal;
+                const note = activeMelody[idx];
+                if (note > 0) {
+                    const noteDur = isBossBattle ? 0.28 : 0.42;
+                    playOudNote(note, now, noteDur, isBossBattle ? 0.095 : 0.075);
+                }
+
+                // 2. Drone Bass pada ketukan 0 dan 8
+                if (idx === 0) {
+                    playDroneBass(HIJAZ.D2, now, (stepMs * 8) / 1000, isBossBattle ? 0.09 : 0.065);
+                } else if (idx === 8) {
+                    playDroneBass(isBossBattle ? HIJAZ.Eb3 * 0.5 : HIJAZ.A2, now, (stepMs * 8) / 1000, isBossBattle ? 0.085 : 0.055);
+                }
+
+                // 3. Perkusi Darbuka (lebih tegas saat encounter)
+                const hit = darbukaPattern[idx];
+                if (hit !== '.') {
+                    const percVol = game.mode === 'WALKING' ? 0.055 : (isBossBattle ? 0.11 : 0.08);
+                    playDarbukaHit(hit, now, percVol);
+                }
+
+                bgmState.step++;
+                bgmState.timerId = setTimeout(scheduleNextStep, stepMs);
+            }
+
+            scheduleNextStep();
+        }
+
+        function stopBGM() {
+            bgmState.isPlaying = false;
+            if (bgmState.timerId) {
+                clearTimeout(bgmState.timerId);
+                bgmState.timerId = null;
+            }
+        }
+
+        function toggleBGM() {
+            ensureAudio();
+            isBGMMuted = !isBGMMuted;
+            document.getElementById('icon-bgm-on').classList.toggle('hidden', isBGMMuted);
+            document.getElementById('icon-bgm-off').classList.toggle('hidden', !isBGMMuted);
+
+            if (bgmState.masterGain && audioCtx) {
+                bgmState.masterGain.gain.setTargetAtTime(isBGMMuted ? 0 : 0.85, audioCtx.currentTime, 0.04);
+            }
+            if (!isBGMMuted && !bgmState.isPlaying && game.mode !== 'TITLE') {
+                startBGM();
+            }
+        }
+
+        function toggleSFX() {
+            ensureAudio();
+            isSFXMuted = !isSFXMuted;
+            document.getElementById('icon-sfx-on').classList.toggle('hidden', isSFXMuted);
+            document.getElementById('icon-sfx-off').classList.toggle('hidden', !isSFXMuted);
+            if (!isSFXMuted) playSFX('hover');
+        }
+
+        function playTone(freq, type, duration, delay = 0, vol = 0.13) {
+            if (isSFXMuted) return;
+            try {
+                ensureAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + delay);
+                osc.stop(audioCtx.currentTime + delay + duration);
+            } catch (e) {}
+        }
+
+        function playNoiseBurst(filterType, freqStart, freqEnd, duration, delay = 0, vol = 0.1, qVal = 1.5) {
+            if (isSFXMuted) return;
+            try {
+                ensureAudio();
+                if (!noiseBuffer) return;
+                const now = audioCtx.currentTime + delay;
+                const src = audioCtx.createBufferSource();
+                src.buffer = noiseBuffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = filterType;
+                filter.Q.value = qVal;
+                filter.frequency.setValueAtTime(freqStart, now);
+                if (freqEnd !== freqStart) {
+                    filter.frequency.exponentialRampToValueAtTime(freqEnd, now + duration);
+                }
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(vol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                src.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                src.start(now);
+                src.stop(now + duration + 0.02);
+            } catch (e) {}
+        }
+
+        function playSFX(name, param = 1) {
+            if (isSFXMuted) return;
+            switch (name) {
+                case 'hover':
+                    // Denting kayu/logam halus saat hover kartu
+                    playTone(740, 'sine', 0.045, 0, 0.035);
+                    break;
+                case 'cardClick':
+                    // Suara tegas memilih kartu jurus
+                    playTone(520, 'triangle', 0.07, 0, 0.11);
+                    playTone(880, 'sine', 0.09, 0.025, 0.09);
+                    break;
+                case 'step':
+                    // Desiran langkah kaki di atas pasir gurun
+                    playNoiseBurst('bandpass', 950, 520, 0.09, 0, 0.045, 1.8);
+                    playTone(95, 'triangle', 0.04, 0, 0.025);
+                    break;
+                case 'encounter':
+                    // Desir angin gurun + terbukanya gulungan perkamen
+                    playNoiseBurst('bandpass', 420, 1450, 0.34, 0, 0.09, 2.2);
+                    playNoiseBurst('highpass', 2200, 3400, 0.14, 0.14, 0.07, 1.0);
+                    playTone(220, 'sawtooth', 0.18, 0.04, 0.07);
+                    playTone(146.83, 'triangle', 0.28, 0.14, 0.09);
+                    break;
+                case 'slash':
+                    // Tebasan angin tajam + denting bilah pedang cahaya
+                    playNoiseBurst('bandpass', 2600, 480, 0.18, 0, 0.13, 1.4);
+                    playTone(680, 'sawtooth', 0.11, 0, 0.12);
+                    playTone(1180, 'sine', 0.22, 0.04, 0.12);
+                    break;
+                case 'explosion': {
+                    // Ledakan cahaya + akor kemenangan yang nadanya naik sesuai jumlah kombo
+                    const pitchMult = Math.min(1.45, 1 + (Math.max(1, param) - 1) * 0.06);
+                    playNoiseBurst('lowpass', 650, 90, 0.36, 0, 0.18, 1.2);
+                    playTone(130, 'square', 0.22, 0, 0.14);
+                    playTone(68, 'sawtooth', 0.34, 0.04, 0.16);
+                    playTone(440 * pitchMult, 'triangle', 0.18, 0.12, 0.11);
+                    playTone(554.37 * pitchMult, 'triangle', 0.18, 0.20, 0.11);
+                    playTone(659.25 * pitchMult, 'triangle', 0.28, 0.28, 0.12);
+                    break;
+                }
+                case 'hurt':
+                    // Benturan perisai + dentuman serangan balik musuh
+                    playNoiseBurst('lowpass', 480, 75, 0.32, 0, 0.18, 1.5);
+                    playTone(190, 'sawtooth', 0.22, 0, 0.17);
+                    playTone(110, 'square', 0.30, 0.08, 0.17);
+                    break;
+                case 'victory':
+                    // Fanfare kemenangan Timur Tengah (Hijaz Kar)
+                    playTone(587.33, 'triangle', 0.15, 0.00, 0.14); // D5
+                    playTone(622.25, 'triangle', 0.15, 0.13, 0.14); // Eb5
+                    playTone(739.99, 'triangle', 0.15, 0.26, 0.14); // F#5
+                    playTone(880.00, 'triangle', 0.22, 0.39, 0.15); // A5
+                    playTone(1174.66, 'triangle', 0.55, 0.56, 0.17); // D6
+                    break;
+                case 'defeat':
+                    // Nada gugur dramatis saat daya tahan habis
+                    playTone(311.13, 'sawtooth', 0.26, 0.00, 0.12); // Eb4
+                    playTone(293.66, 'sawtooth', 0.26, 0.24, 0.12); // D4
+                    playTone(233.08, 'sawtooth', 0.30, 0.48, 0.12); // Bb3
+                    playTone(146.83, 'triangle', 0.65, 0.74, 0.14); // D3
+                    break;
+            }
+        }
+
+        // ==================== 3. STATE GAME & CANVAS ENGINE ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            generateStars();
+        });
+
+        const game = {
+            mode: 'TITLE',
+            stageIndex: 0,
+            playerHP: 100,
+            playerMaxHP: 100,
+            enemyHP: 100,
+            enemyMaxHP: 100,
+            gold: 0,
+            combo: 0,
+            maxCombo: 0,
+            worldScroll: 0,
+            shakeTime: 0,
+            shakeIntensity: 0,
+            walkTimer: 0,
+            stepSoundCooldown: 0,
+            history: []
+        };
+
+        const hero = {
+            x: 0,
+            y: 0,
+            state: 'IDLE',
+            dashOffset: 0
+        };
+
+        const enemy = {
+            x: 0,
+            y: 0,
+            visible: false,
+            state: 'IDLE',
+            opacity: 1,
+            dashOffset: 0
+        };
+
+        let projectiles = [];
+        let particles = [];
+        let floatingTexts = [];
+        let stars = [];
+
+        function generateStars() {
+            stars = [];
+            const count = Math.floor((width * height) / 9500);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * (height * 0.65),
+                    size: Math.random() * 2 + 0.5,
+                    twinkleSpeed: Math.random() * 0.035 + 0.01,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+        }
+        generateStars();
+
+        // ==================== 4. FUNGSI RENDER DUNIA & KARAKTER (CANVAS 2D) ====================
+        function drawEnvironment(time) {
+            // 1. Langit Malam Gurun
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.78);
+            skyGrad.addColorStop(0, '#060913');
+            skyGrad.addColorStop(0.55, '#111930');
+            skyGrad.addColorStop(1, '#261e38');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, width, height);
+
+            // 2. Bintang Malam
+            stars.forEach(s => {
+                const alpha = 0.35 + 0.65 * Math.sin(time * s.twinkleSpeed + s.phase);
+                ctx.fillStyle = `rgba(254, 243, 199, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 3. Bulan Sabit Emas
+            const moonX = width * 0.8;
+            const moonY = height * 0.18;
+            ctx.save();
+            ctx.shadowColor = 'rgba(251, 191, 36, 0.4)';
+            ctx.shadowBlur = 32;
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, 32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0c1224';
+            ctx.beginPath();
+            ctx.arc(moonX - 11, moonY - 5, 28, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            const groundY = height * 0.75;
+
+            // 4. Layer Parallax 1: Piramida & Siluet Kubah Kuno
+            ctx.fillStyle = '#16182e';
+            const farSpacing = 480;
+            const farOffset = (game.worldScroll * 0.15) % farSpacing;
+            for (let x = -farSpacing; x < width + farSpacing; x += farSpacing) {
+                const drawX = x - farOffset;
+                ctx.beginPath();
+                ctx.moveTo(drawX, groundY);
+                ctx.lineTo(drawX + 110, groundY - 135);
+                ctx.lineTo(drawX + 220, groundY);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillRect(drawX + 290, groundY - 85, 14, 85);
+                ctx.beginPath();
+                ctx.arc(drawX + 297, groundY - 85, 9, Math.PI, 0);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(drawX + 345, groundY - 35, 36, Math.PI, 0);
+                ctx.fill();
+            }
+
+            // 5. Layer Parallax 2: Bukit Pasir Belakang
+            ctx.fillStyle = '#36241c';
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            for (let x = 0; x <= width + 60; x += 40) {
+                const duneH = Math.sin((x + game.worldScroll * 0.35) * 0.0045) * 35 + Math.cos((x + game.worldScroll * 0.35) * 0.009) * 18;
+                ctx.lineTo(x, groundY - 25 + duneH);
+            }
+            ctx.lineTo(width, height);
+            ctx.closePath();
+            ctx.fill();
+
+            // 6. Layer Parallax 3: Pilar Reruntuhan & Pohon Kurma
+            const midSpacing = 360;
+            const midOffset = (game.worldScroll * 0.65) % midSpacing;
+            for (let x = -midSpacing; x < width + midSpacing; x += midSpacing) {
+                const px = x - midOffset;
+                ctx.fillStyle = '#453022';
+                ctx.fillRect(px + 50, groundY - 68, 18, 68);
+                ctx.fillRect(px + 45, groundY - 74, 28, 8);
+                ctx.fillRect(px + 45, groundY - 8, 28, 8);
+
+                ctx.strokeStyle = '#332014';
+                ctx.lineWidth = 7;
+                ctx.beginPath();
+                ctx.moveTo(px + 210, groundY);
+                ctx.quadraticCurveTo(px + 202, groundY - 45, px + 215, groundY - 85);
+                ctx.stroke();
+
+                ctx.fillStyle = '#133827';
+                for (let a = -2; a <= 2; a++) {
+                    ctx.beginPath();
+                    ctx.ellipse(px + 215 + a * 14, groundY - 85 + Math.abs(a) * 4, 20, 5, a * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 7. Tanah Gurun Utama
+            const sandGrad = ctx.createLinearGradient(0, groundY, 0, height);
+            sandGrad.addColorStop(0, '#855327');
+            sandGrad.addColorStop(0.25, '#613816');
+            sandGrad.addColorStop(1, '#241408');
+            ctx.fillStyle = sandGrad;
+            ctx.fillRect(0, groundY, width, height - groundY);
+
+            ctx.fillStyle = '#ad7237';
+            ctx.fillRect(0, groundY, width, 3.5);
+
+            const pebbleSpacing = 90;
+            const pebbleOffset = game.worldScroll % pebbleSpacing;
+            ctx.fillStyle = 'rgba(36, 20, 8, 0.45)';
+            for (let x = -pebbleSpacing; x < width + pebbleSpacing; x += pebbleSpacing) {
+                ctx.beginPath();
+                ctx.ellipse(x - pebbleOffset, groundY + 18, 10, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(x + 42 - pebbleOffset, groundY + 34, 6, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawHero(time) {
+            const groundY = height * 0.75;
+            const baseX = (width < 640 ? width * 0.22 : width * 0.28) + hero.dashOffset;
+            let bobY = 0;
+
+            if (hero.state === 'WALK') {
+                bobY = Math.abs(Math.sin(time * 0.015)) * -10;
+            } else if (hero.state === 'IDLE') {
+                bobY = Math.sin(time * 0.005) * -3;
+            } else if (hero.state === 'HURT') {
+                bobY = -6;
+            }
+
+            const hx = baseX;
+            const hy = groundY + bobY;
+            hero.x = hx;
+            hero.y = hy - 45;
+
+            ctx.save();
+            ctx.translate(hx, hy);
+
+            // Bayangan
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(0, -bobY, 28, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Jubah
+            const capeWave = Math.sin(time * 0.012) * 8;
+            ctx.fillStyle = '#065f46';
+            ctx.beginPath();
+            ctx.moveTo(-8, -68);
+            ctx.quadraticCurveTo(-36, -40 + capeWave, -44, -10 + capeWave);
+            ctx.lineTo(-12, -12);
+            ctx.closePath();
+            ctx.fill();
+
+            // Kaki
+            const legSwing = hero.state === 'WALK' ? Math.sin(time * 0.015) * 12 : 0;
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-6, -24);
+            ctx.lineTo(-6 - legSwing, -4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(6, -24);
+            ctx.lineTo(6 + legSwing, -4);
+            ctx.stroke();
+
+            // Zirah Ksatria
+            ctx.fillStyle = hero.state === 'HURT' ? '#dc2626' : '#059669';
+            ctx.beginPath();
+            ctx.roundRect(-16, -68, 32, 46, 10);
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Sabuk Emas
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(-16, -38, 32, 7);
+
+            // Kepala & Sorban
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.arc(2, -82, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(8, -83, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(0, -88, 17, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(-17, -91, 34, 8);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(-17, -88, 34, 3.5);
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(6, -90, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Perisai
+            ctx.fillStyle = '#064e3b';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.8;
+            ctx.beginPath();
+            ctx.arc(-14, -46, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Pedang Lengkung
+            ctx.save();
+            ctx.translate(16, -48);
+            const swordAngle = hero.state === 'ATTACK' ? 0.85 : -0.45 + Math.sin(time * 0.006) * 0.08;
+            ctx.rotate(swordAngle);
+
+            ctx.fillStyle = '#92400e';
+            ctx.fillRect(-3, -6, 6, 14);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(-9, -8, 18, 4);
+
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = hero.state === 'ATTACK' ? 20 : 8;
+            ctx.fillStyle = '#e0f2fe';
+            ctx.beginPath();
+            ctx.moveTo(-3, -8);
+            ctx.quadraticCurveTo(-5, -36, 12, -52);
+            ctx.quadraticCurveTo(4, -30, 3, -8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // Menggambar lambang geometris vektor pada zirah musuh (tanpa emoji)
+        function drawEnemyEmblem(type, isBoss) {
+            ctx.save();
+            ctx.translate(0, -48);
+            ctx.strokeStyle = isBoss ? '#fde047' : '#fda4af';
+            ctx.fillStyle = isBoss ? 'rgba(253, 224, 71, 0.2)' : 'rgba(253, 164, 175, 0.15)';
+            ctx.lineWidth = 2;
+
+            if (isBoss) {
+                // Bintang Segi Delapan (Rub el Hizb) untuk Raja Dhomir
+                ctx.strokeRect(-9, -9, 18, 18);
+                ctx.rotate(Math.PI / 4);
+                ctx.strokeRect(-9, -9, 18, 18);
+                ctx.beginPath();
+                ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Belah Ketupat & Titik Tengah untuk Penjaga Gerbang
+                ctx.rotate(Math.PI / 4);
+                ctx.strokeRect(-8, -8, 16, 16);
+                ctx.fillRect(-8, -8, 16, 16);
+                ctx.beginPath();
+                ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#fda4af';
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawEnemy(time) {
+            if (!enemy.visible || enemy.opacity <= 0) return;
+
+            const groundY = height * 0.75;
+            const stage = stagesData[game.stageIndex];
+            const isBoss = stage.enemyType === 'boss';
+            const scale = isBoss ? 1.36 : 1.05;
+
+            const baseX = (width < 640 ? width * 0.78 : width * 0.73) + enemy.dashOffset;
+            const hoverY = Math.sin(time * 0.006) * -5;
+            const ey = groundY + hoverY;
+
+            enemy.x = baseX;
+            enemy.y = ey - 50 * scale;
+
+            ctx.save();
+            ctx.globalAlpha = enemy.opacity;
+            ctx.translate(baseX, ey);
+            ctx.scale(scale, scale);
+
+            // Bayangan
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(0, -hoverY, 34, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (isBoss) {
+                ctx.shadowColor = '#e11d48';
+                ctx.shadowBlur = 24;
+            }
+
+            // Tubuh Penjaga Gerbang
+            const bodyColor = enemy.state === 'HURT' ? '#f8fafc' : (isBoss ? '#4c0519' : '#1e293b');
+            const armorBorder = isBoss ? '#f59e0b' : '#e11d48';
+
+            ctx.fillStyle = bodyColor;
+            ctx.strokeStyle = armorBorder;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(-24, -82, 48, 66, 14);
+            ctx.fill();
+            ctx.stroke();
+
+            // Pelindung Bahu
+            ctx.fillStyle = isBoss ? '#9f1239' : '#0f172a';
+            ctx.beginPath();
+            ctx.arc(-26, -72, 12, 0, Math.PI * 2);
+            ctx.arc(26, -72, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Helm Penjaga
+            ctx.fillStyle = enemy.state === 'HURT' ? '#fecdd3' : '#0f172a';
+            ctx.beginPath();
+            ctx.arc(0, -98, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Mahkota Geometris jika Boss
+            if (isBoss) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.moveTo(-16, -114);
+                ctx.lineTo(-10, -128);
+                ctx.lineTo(0, -118);
+                ctx.lineTo(10, -128);
+                ctx.lineTo(16, -114);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Mata
+            ctx.shadowColor = '#fb7185';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = isBoss ? '#fde047' : '#fb7185';
+            ctx.beginPath();
+            ctx.ellipse(-7, -98, 4.5, 2.5, -0.2, 0, Math.PI * 2);
+            ctx.ellipse(7, -98, 4.5, 2.5, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Lambang Geometris pada Dada Zirah
+            drawEnemyEmblem(stage.enemyType, isBoss);
+
+            // Tombak / Tongkat Sihir
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 4.5;
+            ctx.beginPath();
+            ctx.moveTo(-26, -30);
+            ctx.lineTo(-34, -95);
+            ctx.stroke();
+
+            ctx.fillStyle = isBoss ? '#f43f5e' : '#c084fc';
+            ctx.beginPath();
+            ctx.arc(-34, -98, 7.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // ==================== 5. EFEK PARTIKEL, PROYEKTIL & TEKS KERUSAKAN ====================
+        function spawnExplosion(x, y, color1, color2, count = 26) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6.5 + 2;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2,
+                    size: Math.random() * 5.5 + 2.5,
+                    color: Math.random() > 0.5 ? color1 : color2,
+                    life: 1.0,
+                    decay: Math.random() * 0.025 + 0.02
+                });
+            }
+        }
+
+        function spawnFloatingText(x, y, text, color) {
+            floatingTexts.push({
+                x,
+                y,
+                text,
+                color,
+                vy: -2.1,
+                life: 1.0
+            });
+        }
+
+        function updateAndDrawEffects() {
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                particles.push({
+                    x: p.x,
+                    y: p.y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    size: p.radius * 0.68,
+                    color: p.color,
+                    life: 0.6,
+                    decay: 0.05
+                });
+
+                ctx.save();
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 18;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                const dist = Math.hypot(p.targetX - p.x, p.targetY - p.y);
+                if (dist < 28) {
+                    if (p.onHit) p.onHit();
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.vy += 0.18;
+                pt.life -= pt.decay;
+
+                if (pt.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = pt.life;
+                ctx.fillStyle = pt.color;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size * pt.life, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.life -= 0.018;
+
+                if (ft.life <= 0) {
+                    floatingTexts.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, ft.life * 1.5);
+                ctx.font = '800 22px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.strokeStyle = '#080b14';
+                ctx.lineWidth = 4.5;
+                ctx.strokeText(ft.text, ft.x, ft.y);
+                ctx.fillStyle = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+        }
+
+        // ==================== 6. GAME LOOP UTAMA ====================
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+
+            if (game.mode === 'TITLE') {
+                game.worldScroll += 1.2;
+                hero.state = 'WALK';
+            } else if (game.mode === 'WALKING') {
+                game.worldScroll += 4.8;
+                hero.state = 'WALK';
+                game.walkTimer += dt;
+                game.stepSoundCooldown -= dt;
+
+                if (game.stepSoundCooldown <= 0) {
+                    playSFX('step');
+                    game.stepSoundCooldown = 280;
+                }
+
+                if (game.walkTimer >= 1400) {
+                    triggerBattleEncounter();
+                }
+            }
+
+            ctx.save();
+            if (game.shakeTime > 0) {
+                game.shakeTime -= dt;
+                const dx = (Math.random() - 0.5) * game.shakeIntensity;
+                const dy = (Math.random() - 0.5) * game.shakeIntensity;
+                ctx.translate(dx, dy);
+            }
+
+            drawEnvironment(timestamp);
+            drawHero(timestamp);
+            drawEnemy(timestamp);
+            updateAndDrawEffects();
+
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==================== 7. LOGIKA PERTEMPURAN & SOAL ====================
+        function startAdventure() {
+            ensureAudio();
+            playSFX('cardClick');
+            playSFX('slash');
+            startBGM();
+
+            game.stageIndex = 0;
+            game.playerHP = 100;
+            game.gold = 0;
+            game.combo = 0;
+            game.maxCombo = 0;
+            game.history = [];
+
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('battle-feedback-modal').classList.add('hidden');
+            document.getElementById('game-hud').classList.remove('hidden');
+
+            beginWalkingToNextStage();
+        }
+
+        function beginWalkingToNextStage() {
+            game.mode = 'WALKING';
+            game.walkTimer = 0;
+            enemy.visible = false;
+            enemy.state = 'IDLE';
+            enemy.opacity = 1;
+
+            document.getElementById('battle-scroll-container').classList.add('hidden');
+            document.getElementById('battle-cards-container').classList.add('hidden');
+            document.getElementById('enemy-hud-box').classList.add('opacity-0');
+            
+            const travelBanner = document.getElementById('travel-banner');
+            travelBanner.classList.remove('hidden');
+            travelBanner.textContent = game.stageIndex === 9
+                ? "Mendekati gerbang terakhir Raja Dhomir..."
+                : `Melangkah menuju Gerbang ke-${game.stageIndex + 1}...`;
+
+            updateHUD();
+        }
+
+        function triggerBattleEncounter() {
+            game.mode = 'ENCOUNTER';
+            hero.state = 'IDLE';
+            playSFX('encounter');
+
+            const stage = stagesData[game.stageIndex];
+            const isBoss = stage.enemyType === 'boss';
+
+            game.enemyMaxHP = isBoss ? 150 : 100;
+            game.enemyHP = game.enemyMaxHP;
+
+            enemy.visible = true;
+            enemy.state = 'IDLE';
+            enemy.opacity = 1;
+
+            document.getElementById('travel-banner').classList.add('hidden');
+            document.getElementById('enemy-hud-box').classList.remove('opacity-0');
+            document.getElementById('enemy-name').textContent = stage.enemyName;
+
+            document.getElementById('scroll-category').textContent = stage.category;
+            document.getElementById('scroll-arabic').textContent = stage.arabic;
+            document.getElementById('scroll-context').textContent = stage.context;
+            document.getElementById('battle-scroll-container').classList.remove('hidden');
+
+            const grid = document.getElementById('skill-cards-grid');
+            grid.innerHTML = '';
+            const badges = ['A', 'B', 'C', 'D'];
+
+            stage.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'skill-card rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center relative cursor-pointer group';
+                btn.onmouseenter = () => playSFX('hover');
+                btn.onclick = () => castDhomirAttack(idx);
+                btn.innerHTML = `
+                    <span class="absolute top-2 left-2.5 text-[10px] sm:text-xs font-extrabold px-1.5 py-0.5 rounded bg-slate-900 text-amber-400 border border-amber-500/30 group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors">
+                        ${badges[idx]}
+                    </span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Pilihan</span>
+                    <span class="arabic-text text-2xl sm:text-3xl font-bold text-white group-hover:text-amber-300 transition-colors">
+                        ${opt}
+                    </span>
+                `;
+                grid.appendChild(btn);
+            });
+
+            document.getElementById('battle-cards-container').classList.remove('hidden');
+            updateHUD();
+        }
+
+        function setCardsDisabled(disabled) {
+            const buttons = document.getElementById('skill-cards-grid').querySelectorAll('button');
+            buttons.forEach(b => b.disabled = disabled);
+        }
+
+        function castDhomirAttack(selectedIndex) {
+            if (game.mode !== 'ENCOUNTER') return;
+            game.mode = 'ANIMATING';
+            setCardsDisabled(true);
+            playSFX('cardClick');
+
+            const stage = stagesData[game.stageIndex];
+            const isCorrect = selectedIndex === stage.correctIndex;
+
+            if (!game.history[game.stageIndex]) {
+                game.history[game.stageIndex] = {
+                    stage: game.stageIndex + 1,
+                    arabic: stage.arabic,
+                    chosen: stage.options[selectedIndex],
+                    correct: stage.options[stage.correctIndex],
+                    isCorrect: isCorrect
+                };
+            }
+
+            if (isCorrect) {
+                playSFX('slash');
+                hero.state = 'ATTACK';
+                hero.dashOffset = 24;
+                setTimeout(() => { hero.dashOffset = 0; hero.state = 'IDLE'; }, 350);
+
+                game.combo++;
+                if (game.combo > game.maxCombo) game.maxCombo = game.combo;
+
+                const goldEarned = 100 + (game.combo - 1) * 25;
+                game.gold += goldEarned;
+
+                projectiles.push({
+                    x: hero.x + 25,
+                    y: hero.y,
+                    targetX: enemy.x,
+                    targetY: enemy.y,
+                    vx: (enemy.x - (hero.x + 25)) / 14,
+                    vy: (enemy.y - hero.y) / 14,
+                    radius: 10,
+                    color: '#38bdf8',
+                    onHit: () => {
+                        playSFX('explosion', game.combo);
+                        game.enemyHP = 0;
+                        enemy.state = 'HURT';
+                        game.shakeTime = 340;
+                        game.shakeIntensity = 11;
+
+                        spawnExplosion(enemy.x, enemy.y, '#38bdf8', '#f59e0b', 34);
+                        spawnFloatingText(enemy.x, enemy.y - 30, `-${game.enemyMaxHP} HP`, '#fde047');
+                        spawnFloatingText(hero.x, hero.y - 55, `+${goldEarned} DINAR`, '#34d399');
+                        updateHUD();
+
+                        const fadeInterval = setInterval(() => {
+                            enemy.opacity -= 0.1;
+                            if (enemy.opacity <= 0) {
+                                enemy.opacity = 0;
+                                clearInterval(fadeInterval);
+                            }
+                        }, 40);
+
+                        setTimeout(() => {
+                            showBattleFeedback(
+                                true,
+                                "Serangan Tepat",
+                                `${stage.enemyName} dikalahkan (+${goldEarned} Dinar)`,
+                                stage.explanation,
+                                game.stageIndex === stagesData.length - 1 ? "Selesaikan Misi" : "Lanjut ke Gerbang Berikutnya"
+                            );
+                        }, 650);
+                    }
+                });
+
+            } else {
+                game.combo = 0;
+                enemy.state = 'ATTACK';
+                enemy.dashOffset = -24;
+                setTimeout(() => { enemy.dashOffset = 0; enemy.state = 'IDLE'; }, 350);
+
+                projectiles.push({
+                    x: enemy.x - 25,
+                    y: enemy.y,
+                    targetX: hero.x,
+                    targetY: hero.y,
+                    vx: (hero.x - (enemy.x - 25)) / 14,
+                    vy: (hero.y - enemy.y) / 14,
+                    radius: 10,
+                    color: '#e11d48',
+                    onHit: () => {
+                        playSFX('hurt');
+                        const damage = 25;
+                        game.playerHP = Math.max(0, game.playerHP - damage);
+                        hero.state = 'HURT';
+                        game.shakeTime = 380;
+                        game.shakeIntensity = 13;
+
+                        const flash = document.getElementById('damage-flash');
+                        flash.classList.remove('bg-red-600/0');
+                        flash.classList.add('bg-red-600/35');
+                        setTimeout(() => {
+                            flash.classList.remove('bg-red-600/35');
+                            flash.classList.add('bg-red-600/0');
+                            hero.state = 'IDLE';
+                        }, 250);
+
+                        spawnExplosion(hero.x, hero.y, '#e11d48', '#fb923c', 26);
+                        spawnFloatingText(hero.x, hero.y - 35, `-${damage} HP`, '#fb7185');
+                        updateHUD();
+
+                        setTimeout(() => {
+                            if (game.playerHP <= 0) {
+                                showBattleFeedback(
+                                    false,
+                                    "Ksatria Terhenti",
+                                    "Daya tahan ksatria telah habis",
+                                    `Jawaban yang tepat adalah "${stage.options[stage.correctIndex]}". ${stage.explanation}`,
+                                    "Lihat Ringkasan Misi"
+                                );
+                            } else {
+                                showBattleFeedback(
+                                    false,
+                                    "Serangan Ditangkis",
+                                    `Terkena serangan balik (-${damage} HP)`,
+                                    `Pilihan "${stage.options[selectedIndex]}" kurang tepat. Jawaban yang benar adalah "${stage.options[stage.correctIndex]}". ${stage.explanation}`,
+                                    "Lanjut ke Gerbang Berikutnya"
+                                );
+                            }
+                        }, 600);
+                    }
+                });
+            }
+        }
+
+        function showBattleFeedback(isSuccess, title, subtitle, explanation, btnLabel) {
+            game.mode = 'FEEDBACK';
+            const modal = document.getElementById('battle-feedback-modal');
+            const box = document.getElementById('feedback-card-box');
+            const ornament = document.getElementById('fb-ornament');
+            const titleEl = document.getElementById('fb-title');
+            const subEl = document.getElementById('fb-subtitle');
+            const expEl = document.getElementById('fb-explanation');
+            const btn = document.getElementById('fb-next-btn');
+
+            box.className = `w-full max-w-md bg-slate-950 border rounded-3xl p-5 sm:p-6 shadow-2xl text-center animate-popup ${
+                isSuccess ? 'border-emerald-500/60' : 'border-rose-500/60'
+            }`;
+
+            ornament.className = `w-12 h-12 mx-auto mb-3 rounded-2xl bg-slate-900 border flex items-center justify-center ${
+                isSuccess ? 'border-emerald-400/60 text-emerald-400' : 'border-rose-400/60 text-rose-400'
+            }`;
+
+            titleEl.textContent = title;
+            titleEl.className = `text-xl sm:text-2xl font-extrabold ${isSuccess ? 'text-amber-300' : 'text-rose-400'}`;
+            subEl.textContent = subtitle;
+            subEl.className = `text-xs font-bold uppercase tracking-wider mt-1 mb-4 ${isSuccess ? 'text-emerald-400' : 'text-orange-300'}`;
+            expEl.textContent = explanation;
+            btn.textContent = btnLabel;
+
+            modal.classList.remove('hidden');
+        }
+
+        function continueAdventure() {
+            playSFX('cardClick');
+            document.getElementById('battle-feedback-modal').classList.add('hidden');
+
+            if (game.playerHP <= 0 || game.stageIndex >= stagesData.length - 1) {
+                endAdventure();
+            } else {
+                game.stageIndex++;
+                beginWalkingToNextStage();
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('stage-num').textContent = game.stageIndex + 1;
+            document.getElementById('gold-score').textContent = game.gold;
+
+            document.getElementById('player-hp-text').textContent = `${game.playerHP}/${game.playerMaxHP}`;
+            const pPercent = (game.playerHP / game.playerMaxHP) * 100;
+            const pBar = document.getElementById('player-hp-bar');
+            pBar.style.width = `${pPercent}%`;
+            pBar.className = `h-full transition-all duration-300 ${
+                pPercent <= 25 ? 'bg-rose-500' : pPercent <= 50 ? 'bg-amber-400' : 'bg-gradient-to-r from-emerald-600 to-emerald-400'
+            }`;
+
+            document.getElementById('enemy-hp-text').textContent = `${game.enemyHP}/${game.enemyMaxHP}`;
+            const ePercent = (game.enemyHP / game.enemyMaxHP) * 100;
+            document.getElementById('enemy-hp-bar').style.width = `${ePercent}%`;
+
+            const comboBadge = document.getElementById('combo-badge');
+            if (game.combo >= 2) {
+                comboBadge.classList.remove('hidden');
+                document.getElementById('combo-count').textContent = game.combo;
+            } else {
+                comboBadge.classList.add('hidden');
+            }
+        }
+
+        // ==================== 8. LAYAR VICTORY / GAME OVER ====================
+        function endAdventure() {
+            game.mode = 'GAMEOVER';
+            stopBGM();
+            document.getElementById('game-hud').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+
+            const isVictory = game.playerHP > 0;
+            const correctCount = game.history.filter(h => h && h.isCorrect).length;
+
+            if (isVictory) {
+                playSFX('victory');
+            } else {
+                playSFX('defeat');
+            }
+
+            document.getElementById('end-title').textContent = isVictory ? 'PENAKLUK GURUN' : 'PERJALANAN TERHENTI';
+            document.getElementById('end-subtitle').textContent = isVictory
+                ? 'Seluruh sepuluh gerbang dhomir berhasil dilalui dengan gemilang.'
+                : 'Daya tahan ksatria habis sebelum mencapai gerbang terakhir.';
+
+            let rank = 'C';
+            if (isVictory && correctCount >= 9) rank = 'S';
+            else if (isVictory && correctCount >= 7) rank = 'A';
+            else if (correctCount >= 5) rank = 'B';
+
+            document.getElementById('end-rank').textContent = rank;
+            document.getElementById('end-gold').textContent = game.gold;
+            document.getElementById('end-stages').textContent = `${correctCount}/10`;
+            document.getElementById('end-combo').textContent = `${game.maxCombo}x`;
+
+            const logList = document.getElementById('battle-log-list');
+            logList.innerHTML = '';
+
+            game.history.forEach((item) => {
+                if (!item) return;
+                const row = document.createElement('div');
+                row.className = `p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 ${
+                    item.isCorrect ? 'bg-emerald-950/50 border-emerald-500/35' : 'bg-rose-950/50 border-rose-500/35'
+                }`;
+                row.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="font-bold text-amber-400 shrink-0">${item.stage}.</span>
+                        <span class="arabic-text text-lg text-slate-100 truncate">${item.arabic}</span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="arabic-text text-lg font-bold ${item.isCorrect ? 'text-emerald-300' : 'text-rose-400 line-through'}">
+                            ${item.chosen}
+                        </span>
+                        ${!item.isCorrect ? `<span class="arabic-text text-lg font-bold text-emerald-300">(${item.correct})</span>` : ''}
+                        <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                            item.isCorrect ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
+                        }">
+                            ${item.isCorrect ? 'Tepat' : 'Keliru'}
+                        </span>
+                    </div>
+                `;
+                logList.appendChild(row);
+            });
+        }
+
+        // Kontrol Papan Ketik 1, 2, 3, 4 / A, B, C, D
+        window.addEventListener('keydown', (e) => {
+            if (game.mode === 'ENCOUNTER') {
+                if (e.key === '1' || e.key.toLowerCase() === 'a') castDhomirAttack(0);
+                if (e.key === '2' || e.key.toLowerCase() === 'b') castDhomirAttack(1);
+                if (e.key === '3' || e.key.toLowerCase() === 'c') castDhomirAttack(2);
+                if (e.key === '4' || e.key.toLowerCase() === 'd') castDhomirAttack(3);
+            } else if (game.mode === 'FEEDBACK' && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                continueAdventure();
+            }
+        });
+
+        window.onload = () => {
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
